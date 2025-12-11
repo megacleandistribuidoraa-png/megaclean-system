@@ -330,6 +330,8 @@ header p{margin:4px 0 0;color:var(--muted);font-size:14px}
         
         <div class="periodo-actions">
           <button class="btn btn-ghost" onclick="carregarRelatorio()">🔄 Atualizar</button>
+          <button class="btn btn-ghost" onclick="exportarExcel()">📊 Excel</button>
+          <button class="btn btn-ghost" onclick="exportarPDF()">📄 PDF</button>
           <button class="btn btn-primary" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
         </div>
       </div>
@@ -875,6 +877,52 @@ window.addEventListener('beforeunload', () => {
     clearInterval(intervaloAtualizacao);
   }
 });
+
+// Exportar para Excel
+function exportarExcel() {
+  if (!dadosRelatorio) { alert('Carregue o relatório primeiro'); return; }
+  
+  const data = dadosRelatorio;
+  const periodoTexto = getPeriodoTexto();
+  
+  // Criar CSV
+  let csv = 'sep=;\n';
+  csv += `RELATÓRIO MEGACLEAN - ${periodoTexto}\n\n`;
+  csv += `Total Vendas;${data.totalVendas || 0}\n`;
+  csv += `Total Pedidos;${data.totalPedidos || 0}\n`;
+  csv += `Ticket Médio;${data.ticketMedio || 0}\n\n`;
+  
+  csv += 'PEDIDOS\n';
+  csv += 'ID;Cliente;Data;Itens;Total\n';
+  (data.pedidos || []).forEach(p => {
+    csv += `${p.id};${p.clienteNome};${formatTime(p.dateISO)};${p.items?.length||0};${p.total}\n`;
+  });
+  
+  csv += '\nPRODUTOS MAIS VENDIDOS\n';
+  csv += 'Produto;Quantidade;Valor Total\n';
+  (data.topProdutos || []).forEach(p => {
+    csv += `${p.nome};${p.totalVendido};${p.valorTotal}\n`;
+  });
+  
+  // Download
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `relatorio_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Exportar para PDF (abre impressão em modo PDF)
+function exportarPDF() {
+  if (!dadosRelatorio) { alert('Carregue o relatório primeiro'); return; }
+  
+  // Usa a função de imprimir que já gera um layout de impressão
+  // O usuário pode escolher "Salvar como PDF" na caixa de impressão
+  alert('Na caixa de impressão, selecione "Salvar como PDF" como destino');
+  imprimirRelatorio();
+}
 </script>
 </body>
 </html>
