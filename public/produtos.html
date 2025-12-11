@@ -232,6 +232,10 @@ tbody td{padding:14px 12px;border-bottom:1px solid #f0f3f7;vertical-align:middle
           <input type="text" id="m-sku" placeholder="Auto-gerado" readonly />
         </div>
         <div class="form-group">
+          <label>📦 Código de Barras</label>
+          <input type="text" id="m-codigoBarras" placeholder="Escaneie ou digite" />
+        </div>
+        <div class="form-group">
           <label>Preço (R$) *</label>
           <input type="number" id="m-preco" step="0.01" min="0" placeholder="0.00" />
         </div>
@@ -372,6 +376,7 @@ function abrirModalNovo() {
   document.getElementById('modal-title').innerHTML = '➕ Novo Produto';
   document.getElementById('m-nome').value = '';
   document.getElementById('m-sku').value = gerarSku();
+  document.getElementById('m-codigoBarras').value = '';
   document.getElementById('m-preco').value = '';
   document.getElementById('m-quantidade').value = '';
   document.getElementById('m-unidade').value = 'UN';
@@ -387,6 +392,7 @@ function abrirModalEditar(id) {
   document.getElementById('modal-title').innerHTML = '✏️ Editar Produto';
   document.getElementById('m-nome').value = produto.nome || '';
   document.getElementById('m-sku').value = produto.sku || '';
+  document.getElementById('m-codigoBarras').value = produto.codigoBarras || '';
   document.getElementById('m-preco').value = produto.preco || 0;
   document.getElementById('m-quantidade').value = produto.quantidade || 0;
   document.getElementById('m-unidade').value = produto.unidade || 'UN';
@@ -514,6 +520,7 @@ function renderizarTabela() {
 async function salvarProduto() {
   const nome = document.getElementById('m-nome').value.trim();
   const sku = document.getElementById('m-sku').value.trim();
+  const codigoBarras = document.getElementById('m-codigoBarras').value.trim();
   const preco = parseFloat(document.getElementById('m-preco').value) || 0;
   const quantidade = parseInt(document.getElementById('m-quantidade').value) || 0;
   const unidade = document.getElementById('m-unidade').value;
@@ -524,7 +531,7 @@ async function salvarProduto() {
     return;
   }
 
-  const payload = { nome, sku, preco, quantidade, unidade, minimo };
+  const payload = { nome, sku, codigoBarras, preco, quantidade, unidade, minimo };
 
   try {
     const url = editandoId ? `/api/produtos/${editandoId}` : '/api/produtos';
