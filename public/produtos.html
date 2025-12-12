@@ -84,6 +84,8 @@ tbody tr{transition:background .15s}
 tbody tr:hover{background:#f8fafc}
 tbody tr.lowstock{background:linear-gradient(90deg,#fef2f2 0%,#fff 50%)}
 tbody td{padding:14px 12px;border-bottom:1px solid #f0f3f7;vertical-align:middle}
+.margem-positiva{color:#0aa04e;font-weight:600}
+.margem-negativa{color:#dc2626;font-weight:600}
 .produto-info{display:flex;flex-direction:column;gap:2px}
 .produto-nome{font-weight:600;color:#0f172a}
 .produto-sku{font-size:12px;color:var(--muted)}
@@ -178,6 +180,13 @@ tbody td{padding:14px 12px;border-bottom:1px solid #f0f3f7;vertical-align:middle
           <p>Sem estoque</p>
         </div>
       </div>
+      <div class="stat-card">
+        <div class="icon green">📈</div>
+        <div class="info">
+          <h3 id="stat-lucro">R$ 0</h3>
+          <p>Lucro Estimado</p>
+        </div>
+      </div>
     </div>
 
     <!-- Tabela de produtos -->
@@ -197,16 +206,17 @@ tbody td{padding:14px 12px;border-bottom:1px solid #f0f3f7;vertical-align:middle
             <tr>
               <th>Produto</th>
               <th>SKU</th>
-              <th>Preço</th>
+              <th>Custo</th>
+              <th>Venda</th>
+              <th>Margem</th>
               <th>Estoque</th>
-              <th>Mínimo</th>
               <th>Status</th>
               <th style="text-align:center">Ações</th>
             </tr>
           </thead>
           <tbody id="table-body">
             <tr>
-              <td colspan="7" class="empty-state">
+              <td colspan="8" class="empty-state">
                 <div class="icon">📦</div>
                 <h4>Carregando produtos...</h4>
               </td>
@@ -236,8 +246,16 @@ tbody td{padding:14px 12px;border-bottom:1px solid #f0f3f7;vertical-align:middle
           <input type="text" id="m-codigoBarras" placeholder="Escaneie ou digite" />
         </div>
         <div class="form-group">
-          <label>Preço (R$) *</label>
-          <input type="number" id="m-preco" step="0.01" min="0" placeholder="0.00" />
+          <label>💵 Preço de Custo (R$) *</label>
+          <input type="number" id="m-precoCusto" step="0.01" min="0" placeholder="0.00" oninput="calcularMargem()" />
+        </div>
+        <div class="form-group">
+          <label>💰 Preço de Venda (R$) *</label>
+          <input type="number" id="m-preco" step="0.01" min="0" placeholder="0.00" oninput="calcularMargem()" />
+        </div>
+        <div class="form-group">
+          <label>📊 Margem de Lucro</label>
+          <input type="text" id="m-margem" readonly style="background:#e6f9ee;font-weight:bold;color:#0aa04e" placeholder="0%" />
         </div>
         <div class="form-group">
           <label>Quantidade *</label>
@@ -342,6 +360,27 @@ function showToast(msg, type = 'success') {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+// Calcular margem de lucro automaticamente
+function calcularMargem() {
+  const custo = parseFloat(document.getElementById('m-precoCusto').value) || 0;
+  const venda = parseFloat(document.getElementById('m-preco').value) || 0;
+  const margemInput = document.getElementById('m-margem');
+  
+  if (custo > 0 && venda > 0) {
+    const lucro = venda - custo;
+    const margemPct = ((lucro / custo) * 100).toFixed(1);
+    const margemBruta = lucro.toFixed(2);
+    
+    margemInput.value = `${margemPct}% (R$ ${margemBruta.replace('.', ',')} de lucro)`;
+    margemInput.style.color = lucro >= 0 ? '#0aa04e' : '#dc2626';
+    margemInput.style.background = lucro >= 0 ? '#e6f9ee' : '#fef2f2';
+  } else {
+    margemInput.value = '—';
+    margemInput.style.color = '#6b7280';
+    margemInput.style.background = '#f4f7fb';
+  }
+}
+
 function gerarSku() {
   let max = 0;
   produtos.forEach(p => {
@@ -377,7 +416,9 @@ function abrirModalNovo() {
   document.getElementById('m-nome').value = '';
   document.getElementById('m-sku').value = gerarSku();
   document.getElementById('m-codigoBarras').value = '';
+  document.getElementById('m-precoCusto').value = '';
   document.getElementById('m-preco').value = '';
+  document.getElementById('m-margem').value = '—';
   document.getElementById('m-quantidade').value = '';
   document.getElementById('m-unidade').value = 'UN';
   document.getElementById('m-minimo').value = '5';
@@ -393,10 +434,12 @@ function abrirModalEditar(id) {
   document.getElementById('m-nome').value = produto.nome || '';
   document.getElementById('m-sku').value = produto.sku || '';
   document.getElementById('m-codigoBarras').value = produto.codigoBarras || '';
+  document.getElementById('m-precoCusto').value = produto.precoCusto || 0;
   document.getElementById('m-preco').value = produto.preco || 0;
   document.getElementById('m-quantidade').value = produto.quantidade || 0;
   document.getElementById('m-unidade').value = produto.unidade || 'UN';
   document.getElementById('m-minimo').value = produto.minimo || 0;
+  calcularMargem();
   abrirModal('modal-produto');
 }
 
@@ -432,7 +475,7 @@ async function carregarProdutos() {
     console.error(e);
     document.getElementById('table-body').innerHTML = `
       <tr>
-        <td colspan="7" class="empty-state">
+        <td colspan="8" class="empty-state">
           <div class="icon">❌</div>
           <h4>Erro ao carregar produtos</h4>
         </td>
@@ -448,17 +491,25 @@ function atualizarEstatisticas() {
   let valorTotal = 0;
   let baixo = 0;
   let zerado = 0;
+  let lucroEstimado = 0;
 
   produtos.forEach(p => {
-    valorTotal += (p.quantidade || 0) * (p.preco || 0);
-    if (p.quantidade <= 0) zerado++;
-    else if (p.quantidade <= (p.minimo || 0)) baixo++;
+    const qtd = p.quantidade || 0;
+    const venda = p.preco || 0;
+    const custo = p.precoCusto || 0;
+    
+    valorTotal += qtd * venda;
+    lucroEstimado += qtd * (venda - custo);
+    
+    if (qtd <= 0) zerado++;
+    else if (qtd <= (p.minimo || 0)) baixo++;
   });
 
   document.getElementById('stat-total').textContent = produtos.length;
   document.getElementById('stat-valor').textContent = formatMoney(valorTotal);
   document.getElementById('stat-baixo').textContent = baixo;
   document.getElementById('stat-zerado').textContent = zerado;
+  document.getElementById('stat-lucro').textContent = formatMoney(lucroEstimado);
 }
 
 // ============================================
@@ -477,7 +528,7 @@ function renderizarTabela() {
   if (lista.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty-state">
+        <td colspan="8" class="empty-state">
           <div class="icon">📭</div>
           <h4>Nenhum produto encontrado</h4>
         </td>
@@ -489,6 +540,11 @@ function renderizarTabela() {
   tbody.innerHTML = lista.map(p => {
     const status = getStockStatus(p);
     const isLow = p.quantidade <= (p.minimo || 0);
+    const custo = p.precoCusto || 0;
+    const venda = p.preco || 0;
+    const lucro = venda - custo;
+    const margemPct = custo > 0 ? ((lucro / custo) * 100).toFixed(0) : 0;
+    const margemClass = lucro > 0 ? 'margem-positiva' : (lucro < 0 ? 'margem-negativa' : '');
 
     return `
       <tr class="${isLow ? 'lowstock' : ''}">
@@ -498,9 +554,10 @@ function renderizarTabela() {
           </div>
         </td>
         <td><span class="produto-sku">${escapeHtml(p.sku || '—')}</span></td>
-        <td><strong>${formatMoney(p.preco)}</strong></td>
+        <td style="color:var(--muted)">${formatMoney(custo)}</td>
+        <td><strong>${formatMoney(venda)}</strong></td>
+        <td class="${margemClass}"><strong>${margemPct}%</strong> <small>(${formatMoney(lucro)})</small></td>
         <td><strong>${p.quantidade}</strong> ${escapeHtml(p.unidade || 'UN')}</td>
-        <td>${p.minimo || 0}</td>
         <td><span class="badge ${status.class}">${status.text}</span></td>
         <td>
           <div class="table-actions">
@@ -521,6 +578,7 @@ async function salvarProduto() {
   const nome = document.getElementById('m-nome').value.trim();
   const sku = document.getElementById('m-sku').value.trim();
   const codigoBarras = document.getElementById('m-codigoBarras').value.trim();
+  const precoCusto = parseFloat(document.getElementById('m-precoCusto').value) || 0;
   const preco = parseFloat(document.getElementById('m-preco').value) || 0;
   const quantidade = parseInt(document.getElementById('m-quantidade').value) || 0;
   const unidade = document.getElementById('m-unidade').value;
@@ -531,7 +589,7 @@ async function salvarProduto() {
     return;
   }
 
-  const payload = { nome, sku, codigoBarras, preco, quantidade, unidade, minimo };
+  const payload = { nome, sku, codigoBarras, precoCusto, preco, quantidade, unidade, minimo };
 
   try {
     const url = editandoId ? `/api/produtos/${editandoId}` : '/api/produtos';

@@ -389,6 +389,39 @@ document.getElementById('password').addEventListener('keypress', (e) => {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+// Botão de Instalar PWA
+let deferredPrompt;
+const installBtn = document.createElement('button');
+installBtn.id = 'install-btn';
+installBtn.innerHTML = '📱 Instalar App';
+installBtn.style.cssText = 'display:none;position:fixed;bottom:20px;right:20px;background:#0aa04e;color:#fff;border:none;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(10,160,78,0.4);z-index:1000;animation:bounce 2s infinite';
+document.body.appendChild(installBtn);
+
+// Adicionar animação
+const style = document.createElement('style');
+style.textContent = '@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}';
+document.head.appendChild(style);
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block';
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    installBtn.style.display = 'none';
+  }
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+});
 </script>
 </body>
 </html>
