@@ -194,6 +194,7 @@ tbody td{padding:14px 12px;border-bottom:1px solid #f0f3f7;vertical-align:middle
       <div class="card-header">
         <h2 class="card-title">📋 Lista de Produtos</h2>
         <div class="filters">
+          <button class="btn btn-ghost" onclick="abrirRelatorio()" style="margin-right:12px">📊 Relatório de Lucros</button>
           <div class="search-box">
             <input type="text" id="search" placeholder="Buscar por nome ou SKU..." />
           </div>
@@ -323,6 +324,18 @@ tbody td{padding:14px 12px;border-bottom:1px solid #f0f3f7;vertical-align:middle
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="fecharModal('modal-delete')">Cancelar</button>
         <button class="btn btn-danger" onclick="confirmarExclusao()">🗑️ Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Relatório de Lucros -->
+  <div id="modal-relatorio" class="modal-backdrop">
+    <div class="modal" style="max-width:700px">
+      <h3>📊 Relatório de Lucros</h3>
+      <div id="relatorio-content"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="fecharModal('modal-relatorio')">Fechar</button>
+        <button class="btn btn-primary" onclick="imprimirRelatorioLucros()">🖨️ Imprimir</button>
       </div>
     </div>
   </div>
@@ -659,6 +672,111 @@ async function confirmarExclusao() {
   } catch (e) {
     showToast(e.message, 'error');
   }
+}
+
+// ============================================
+// RELATÓRIO DE LUCROS
+// ============================================
+function abrirRelatorio() {
+  let totalCusto = 0;
+  let totalVenda = 0;
+  let totalLucro = 0;
+  
+  const linhas = produtos.map(p => {
+    const qtd = p.quantidade || 0;
+    const custo = p.precoCusto || 0;
+    const venda = p.preco || 0;
+    const custoTotal = qtd * custo;
+    const vendaTotal = qtd * venda;
+    const lucro = vendaTotal - custoTotal;
+    const margemPct = custo > 0 ? ((venda - custo) / custo * 100).toFixed(1) : 0;
+    
+    totalCusto += custoTotal;
+    totalVenda += vendaTotal;
+    totalLucro += lucro;
+    
+    return `
+      <tr>
+        <td>${escapeHtml(p.nome)}</td>
+        <td style="text-align:center">${qtd}</td>
+        <td style="text-align:right">${formatMoney(custo)}</td>
+        <td style="text-align:right">${formatMoney(venda)}</td>
+        <td style="text-align:right">${formatMoney(custoTotal)}</td>
+        <td style="text-align:right">${formatMoney(vendaTotal)}</td>
+        <td style="text-align:right;color:${lucro >= 0 ? '#0aa04e' : '#dc2626'};font-weight:bold">${formatMoney(lucro)}</td>
+        <td style="text-align:center">${margemPct}%</td>
+      </tr>
+    `;
+  }).join('');
+  
+  const margemMedia = totalCusto > 0 ? ((totalLucro / totalCusto) * 100).toFixed(1) : 0;
+  
+  document.getElementById('relatorio-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div style="background:#f0f3f7;padding:14px;border-radius:10px;text-align:center">
+        <p style="margin:0;font-size:12px;color:#6b7280">Custo Total</p>
+        <h3 style="margin:4px 0 0;font-size:18px">${formatMoney(totalCusto)}</h3>
+      </div>
+      <div style="background:#f0f3f7;padding:14px;border-radius:10px;text-align:center">
+        <p style="margin:0;font-size:12px;color:#6b7280">Venda Total</p>
+        <h3 style="margin:4px 0 0;font-size:18px">${formatMoney(totalVenda)}</h3>
+      </div>
+      <div style="background:#e6f9ee;padding:14px;border-radius:10px;text-align:center">
+        <p style="margin:0;font-size:12px;color:#0aa04e">Lucro Estimado</p>
+        <h3 style="margin:4px 0 0;font-size:18px;color:#0aa04e">${formatMoney(totalLucro)}</h3>
+      </div>
+      <div style="background:#e6f9ee;padding:14px;border-radius:10px;text-align:center">
+        <p style="margin:0;font-size:12px;color:#0aa04e">Margem Média</p>
+        <h3 style="margin:4px 0 0;font-size:18px;color:#0aa04e">${margemMedia}%</h3>
+      </div>
+    </div>
+    <div style="max-height:300px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#f0f3f7">
+            <th style="padding:10px;text-align:left">Produto</th>
+            <th style="padding:10px;text-align:center">Qtd</th>
+            <th style="padding:10px;text-align:right">Custo Un.</th>
+            <th style="padding:10px;text-align:right">Venda Un.</th>
+            <th style="padding:10px;text-align:right">Custo Total</th>
+            <th style="padding:10px;text-align:right">Venda Total</th>
+            <th style="padding:10px;text-align:right">Lucro</th>
+            <th style="padding:10px;text-align:center">Margem</th>
+          </tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    </div>
+  `;
+  
+  abrirModal('modal-relatorio');
+}
+
+function imprimirRelatorioLucros() {
+  const content = document.getElementById('relatorio-content').innerHTML;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Relatório de Lucros - MegaClean</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #0aa04e; font-size: 24px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; border: 1px solid #ddd; }
+        th { background: #f0f3f7; }
+      </style>
+    </head>
+    <body>
+      <h1>🧹 MegaClean - Relatório de Lucros</h1>
+      <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+      ${content}
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
 }
 
 // ============================================
