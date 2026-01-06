@@ -607,6 +607,7 @@ header p{margin:4px 0 0;color:var(--muted);font-size:14px}
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="fecharModal()">Fechar</button>
         <button class="btn btn-ghost" id="btn-whatsapp" onclick="enviarWhatsApp()" style="background:#25d366;color:#fff">📱 WhatsApp</button>
+        <button class="btn btn-ghost" id="btn-nfe" onclick="emitirNFe()" style="background:#fbbf24;color:#000">📄 NF-e</button>
         <button class="btn btn-primary" id="btn-imprimir" onclick="imprimirPedido()">🖨️ Imprimir Pedido</button>
       </div>
     </div>
@@ -1272,6 +1273,111 @@ function enviarWhatsApp() {
   
   const url = `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
+}
+
+// ============================================
+// EMISSÃO DE NF-e
+// ============================================
+async function emitirNFe() {
+  if (!pedidoAtual) {
+    showToast('Nenhum pedido selecionado', 'error');
+    return;
+  }
+  
+  const pedido = pedidoAtual;
+  
+  // Confirmar emissão
+  if (!confirm(`Deseja emitir NF-e para o pedido #${pedido.id.slice(-6).toUpperCase()}?\n\nCliente: ${pedido.clienteNome}\nValor: R$ ${pedido.total.toFixed(2)}`)) {
+    return;
+  }
+  
+  showToast('⏳ Gerando NF-e...', 'info');
+  
+  try {
+    const res = await fetch(`/api/nfe/emitir/${pedido.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await res.json();
+    
+    if (data.error) {
+      showToast('❌ ' + data.error, 'error');
+      return;
+    }
+    
+    if (data.modo === 'manual') {
+      // Modo manual - mostrar dados para copiar
+      mostrarDadosNFeManual(data.dados);
+      showToast('✅ Dados da NF-e gerados! Copie para o portal da SEFAZ.', 'success');
+    } else if (data.sucesso) {
+      // NF-e emitida com sucesso via API
+      showToast(`✅ NF-e #${data.nfe.numero} emitida com sucesso!`, 'success');
+      
+      // Se tiver PDF, abrir
+      if (data.nfe.urlPdf) {
+        window.open(data.nfe.urlPdf, '_blank');
+      }
+    } else {
+      // Erro na emissão
+      const erro = data.nfe?.mensagemErro || 'Erro desconhecido';
+      showToast('❌ ' + erro, 'error');
+    }
+    
+  } catch (e) {
+    showToast('❌ Erro ao emitir NF-e: ' + e.message, 'error');
+  }
+}
+
+function mostrarDadosNFeManual(dados) {
+  // Criar modal com dados formatados para copiar
+  const itensTexto = dados.itens.map(item => 
+    `${item.numero}. ${item.produto} - Qtd: ${item.quantidade} - R$ ${item.valorUnitario.toFixed(2)} = R$ ${item.valorTotal.toFixed(2)}`
+  ).join('\n');
+  
+  const texto = `
+=== DADOS PARA NF-e ===
+
+CLIENTE:
+Nome: ${dados.cliente.nome}
+CPF/CNPJ: ${dados.cliente.cpfCnpj || 'N/A'}
+
+ITENS:
+${itensTexto}
+
+TOTAL: R$ ${dados.valorTotal.toFixed(2)}
+
+Data: ${new Date(dados.dataEmissao).toLocaleString('pt-BR')}
+  `.trim();
+  
+  // Criar modal
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'modal-nfe-manual';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:600px">
+      <div class="modal-header">
+        <h2>📄 Dados para NF-e Manual</h2>
+        <button class="close-btn" onclick="this.closest('.modal').remove()">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:12px;color:#666">Copie os dados abaixo e cole no portal da SEFAZ-SP:</p>
+        <textarea id="texto-nfe" readonly style="width:100%;height:300px;padding:12px;border:2px solid #e6e9ef;border-radius:10px;font-family:monospace;font-size:13px">${texto}</textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="this.closest('.modal').remove()">Fechar</button>
+        <button class="btn btn-primary" onclick="copiarTextoNFe()">📋 Copiar Dados</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function copiarTextoNFe() {
+  const textarea = document.getElementById('texto-nfe');
+  textarea.select();
+  document.execCommand('copy');
+  showToast('✅ Dados copiados!', 'success');
 }
 
 // ============================================

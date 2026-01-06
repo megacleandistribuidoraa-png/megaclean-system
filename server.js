@@ -14,6 +14,8 @@ const Categoria = require('./models/Categoria');
 const Fornecedor = require('./models/Fornecedor');
 const Orcamento = require('./models/Orcamento');
 const ConfigEmpresa = require('./models/ConfigEmpresa');
+const ConfigNFe = require('./models/ConfigNFe');
+const NotaFiscal = require('./models/NotaFiscal');
 
 const app = express();
 app.use(cors());
@@ -321,6 +323,7 @@ app.get('/api/admin/pages', verificarAuth, (req, res) => {
       { id: 'solicitacoes', title: 'Solicitações', url: '/solicitacoes.html', icon: '📝' },
       { id: 'usuarios', title: 'Usuários', url: '/usuarios.html', icon: '👤' },
       { id: 'config-empresa', title: 'Dados da Empresa', url: '/config-empresa.html', icon: '🏢' },
+      { id: 'config-nfe', title: 'NF-e', url: '/config-nfe.html', icon: '📄' },
       { id: 'config', title: 'Configurações', url: '/config.html', icon: '⚙️' }
     ];
   }
@@ -1262,6 +1265,337 @@ app.post('/api/pedidos/:id/documento-fiscal', verificarAuth, async (req, res) =>
     });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao gerar documento' });
+  }
+});
+
+// ---------------------------------------------
+// -------------- CONFIG NF-e -----------------
+// ---------------------------------------------
+
+// GET - Buscar configuração NF-e
+app.get('/api/config-nfe', async (req, res) => {
+  try {
+    let config = await ConfigNFe.findOne();
+    if (!config) {
+      config = await ConfigNFe.create({});
+    }
+    res.json(config);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST - Salvar configuração NF-e
+app.post('/api/config-nfe', async (req, res) => {
+  try {
+    let config = await ConfigNFe.findOne();
+    if (config) {
+      Object.assign(config, req.body);
+      config.dataAtualizacao = new Date();
+      await config.save();
+    } else {
+      config = await ConfigNFe.create(req.body);
+    }
+    res.json(config);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST - Testar conexão com provedor NF-e
+app.post('/api/config-nfe/testar', async (req, res) => {
+  try {
+    const config = await ConfigNFe.findOne();
+    if (!config) {
+      return res.json({ sucesso: false, erro: 'Configuração não encontrada' });
+    }
+    
+    const { provedor } = req.body;
+    
+    // Testar conexão baseado no provedor
+    if (provedor === 'focus_nfe' && config.focusToken) {
+      // Testar Focus NFe
+      const ambiente = config.ambiente === 'producao' ? 'api' : 'homologacao';
+      const url = `https://${ambiente}.focusnfe.com.br/v2/nfe`;
+      
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Basic ' + Buffer.from(config.focusToken + ':').toString('base64')
+          }
+        });
+        
+        if (response.status === 401) {
+          return res.json({ sucesso: false, erro: 'Token inválido' });
+        }
+        
+        return res.json({ sucesso: true, mensagem: 'Conexão OK com Focus NFe!' });
+      } catch (e) {
+        return res.json({ sucesso: false, erro: 'Erro de conexão: ' + e.message });
+      }
+    }
+    
+    if (provedor === 'manual') {
+      return res.json({ sucesso: true, mensagem: 'Modo manual não requer teste de conexão' });
+    }
+    
+    res.json({ sucesso: false, erro: 'Configure as credenciais do provedor primeiro' });
+  } catch (e) {
+    res.status(500).json({ sucesso: false, erro: e.message });
+  }
+});
+
+// ---------------------------------------------
+// -------------- EMISSÃO NF-e ----------------
+// ---------------------------------------------
+
+// POST - Emitir NF-e para um pedido
+app.post('/api/nfe/emitir/:pedidoId', async (req, res) => {
+  try {
+    const { pedidoId } = req.params;
+    
+    // Buscar pedido
+    const pedido = await Pedido.findById(pedidoId);
+    if (!pedido) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+    
+    // Buscar configuração NF-e
+    const config = await ConfigNFe.findOne();
+    if (!config || !config.configurado) {
+      return res.status(400).json({ error: 'NF-e não configurada. Acesse Configurações > NF-e' });
+    }
+    
+    // Verificar se já existe NF para este pedido
+    const nfeExistente = await NotaFiscal.findOne({ pedidoId, status: 'autorizada' });
+    if (nfeExistente) {
+      return res.status(400).json({ error: 'Já existe NF-e emitida para este pedido', nfe: nfeExistente });
+    }
+    
+    // Buscar cliente
+    const cliente = await Cliente.findById(pedido.clienteId);
+    
+    // Criar registro da NF
+    const numeroNfe = config.proximoNumeroNfe;
+    const notaFiscal = await NotaFiscal.create({
+      pedidoId: pedido._id,
+      numero: numeroNfe,
+      serie: config.serieNfe,
+      status: 'processando',
+      clienteNome: pedido.clienteNome || cliente?.nome || 'Consumidor',
+      clienteCpfCnpj: cliente?.cpfCnpj || '',
+      valorTotal: pedido.total,
+      valorProdutos: pedido.total,
+      ambiente: config.ambiente,
+      provedor: config.provedor
+    });
+    
+    // Se modo manual, retornar dados formatados
+    if (config.provedor === 'manual') {
+      notaFiscal.status = 'pendente';
+      await notaFiscal.save();
+      
+      // Incrementar número
+      config.proximoNumeroNfe = numeroNfe + 1;
+      await config.save();
+      
+      // Gerar dados formatados para copiar
+      const dadosNfe = {
+        numero: numeroNfe,
+        serie: config.serieNfe,
+        cliente: {
+          nome: notaFiscal.clienteNome,
+          cpfCnpj: notaFiscal.clienteCpfCnpj
+        },
+        itens: pedido.itens.map((item, idx) => ({
+          numero: idx + 1,
+          produto: item.nome,
+          quantidade: item.quantidade,
+          valorUnitario: item.preco,
+          valorTotal: item.quantidade * item.preco
+        })),
+        valorTotal: pedido.total,
+        dataEmissao: new Date().toISOString()
+      };
+      
+      return res.json({ 
+        sucesso: true, 
+        modo: 'manual',
+        mensagem: 'Dados gerados para emissão manual',
+        nfe: notaFiscal,
+        dados: dadosNfe
+      });
+    }
+    
+    // Emitir via Focus NFe
+    if (config.provedor === 'focus_nfe') {
+      const ambiente = config.ambiente === 'producao' ? 'api' : 'homologacao';
+      const url = `https://${ambiente}.focusnfe.com.br/v2/nfe`;
+      
+      // Montar payload da NFe
+      const nfePayload = {
+        natureza_operacao: 'VENDA DE MERCADORIA',
+        forma_pagamento: '0', // À vista
+        tipo_documento: '1', // Saída
+        finalidade_emissao: '1', // Normal
+        consumidor_final: '1',
+        presenca_comprador: '1', // Presencial
+        
+        cnpj_emitente: config.cnpj.replace(/\D/g, ''),
+        
+        nome_destinatario: notaFiscal.clienteNome,
+        cpf_destinatario: (cliente?.cpfCnpj || '').replace(/\D/g, ''),
+        
+        itens: pedido.itens.map((item, idx) => ({
+          numero_item: idx + 1,
+          codigo_produto: item.sku || item.id || String(idx + 1),
+          descricao: item.nome,
+          cfop: config.cfopPadrao,
+          unidade_comercial: 'UN',
+          quantidade_comercial: item.quantidade,
+          valor_unitario_comercial: item.preco,
+          valor_bruto: item.quantidade * item.preco,
+          unidade_tributavel: 'UN',
+          quantidade_tributavel: item.quantidade,
+          valor_unitario_tributavel: item.preco,
+          icms_origem: '0',
+          icms_situacao_tributaria: '102' // Simples Nacional
+        }))
+      };
+      
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + Buffer.from(config.focusToken + ':').toString('base64'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(nfePayload)
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'autorizado' || data.status_sefaz === '100') {
+          notaFiscal.status = 'autorizada';
+          notaFiscal.chaveAcesso = data.chave_nfe;
+          notaFiscal.protocolo = data.protocolo;
+          notaFiscal.dataAutorizacao = new Date();
+          notaFiscal.referenciaExterna = data.ref;
+          
+          if (data.caminho_danfe) {
+            notaFiscal.urlPdf = data.caminho_danfe;
+          }
+          
+          // Incrementar número
+          config.proximoNumeroNfe = numeroNfe + 1;
+          await config.save();
+          
+        } else if (data.status === 'processando_autorizacao') {
+          notaFiscal.status = 'processando';
+          notaFiscal.referenciaExterna = data.ref;
+        } else {
+          notaFiscal.status = 'erro';
+          notaFiscal.mensagemErro = data.mensagem || data.status_sefaz_mensagem || 'Erro desconhecido';
+          notaFiscal.codigoErro = data.status_sefaz || '';
+        }
+        
+        await notaFiscal.save();
+        
+        return res.json({
+          sucesso: notaFiscal.status === 'autorizada',
+          nfe: notaFiscal,
+          dados: data
+        });
+        
+      } catch (e) {
+        notaFiscal.status = 'erro';
+        notaFiscal.mensagemErro = 'Erro de conexão: ' + e.message;
+        await notaFiscal.save();
+        
+        return res.status(500).json({ error: e.message, nfe: notaFiscal });
+      }
+    }
+    
+    res.status(400).json({ error: 'Provedor não suportado' });
+    
+  } catch (e) {
+    console.error('Erro ao emitir NF-e:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET - Listar notas fiscais
+app.get('/api/nfe', async (req, res) => {
+  try {
+    const notas = await NotaFiscal.find().sort({ dataEmissao: -1 }).limit(100);
+    res.json(notas);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET - Buscar NF por pedido
+app.get('/api/nfe/pedido/:pedidoId', async (req, res) => {
+  try {
+    const nota = await NotaFiscal.findOne({ pedidoId: req.params.pedidoId });
+    if (!nota) {
+      return res.status(404).json({ error: 'NF não encontrada para este pedido' });
+    }
+    res.json(nota);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET - Gerar dados para NF manual
+app.get('/api/nfe/dados-manual/:pedidoId', async (req, res) => {
+  try {
+    const pedido = await Pedido.findById(req.params.pedidoId);
+    if (!pedido) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+    
+    const cliente = await Cliente.findById(pedido.clienteId);
+    const config = await ConfigNFe.findOne();
+    
+    const dados = {
+      // Dados da empresa
+      empresa: {
+        cnpj: config?.cnpj || '',
+        razaoSocial: config?.razaoSocial || '',
+        nomeFantasia: config?.nomeFantasia || ''
+      },
+      // Dados do cliente
+      cliente: {
+        nome: pedido.clienteNome || cliente?.nome || 'Consumidor',
+        cpfCnpj: cliente?.cpfCnpj || '',
+        endereco: cliente?.endereco || '',
+        telefone: cliente?.telefone || ''
+      },
+      // Itens
+      itens: pedido.itens.map((item, idx) => ({
+        numero: idx + 1,
+        codigo: item.sku || item.id || '',
+        descricao: item.nome,
+        ncm: item.ncm || '39249000', // NCM genérico para plásticos
+        cfop: config?.cfopPadrao || '5102',
+        unidade: 'UN',
+        quantidade: item.quantidade,
+        valorUnitario: item.preco.toFixed(2),
+        valorTotal: (item.quantidade * item.preco).toFixed(2)
+      })),
+      // Totais
+      valorProdutos: pedido.total.toFixed(2),
+      valorTotal: pedido.total.toFixed(2),
+      // Data
+      data: new Date().toLocaleDateString('pt-BR'),
+      hora: new Date().toLocaleTimeString('pt-BR')
+    };
+    
+    res.json(dados);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
