@@ -337,6 +337,15 @@ export default {
 
   async loadChart() {
     try {
+      const ctx = document.getElementById('chart-vendas');
+      if (!ctx) return;
+
+      // Destruir gráfico anterior se existir
+      if (window.chartVendas) {
+        window.chartVendas.destroy();
+        window.chartVendas = null;
+      }
+
       const apiBase = window.API_BASE_URL || '/api';
       const pedidosRes = await fetch(`${apiBase}/pedidos`, {
         headers: (window.Utils || Utils).getAuthHeaders()
@@ -365,12 +374,9 @@ export default {
         vendas.push(totalDia);
       }
 
-      const ctx = document.getElementById('chart-vendas');
-      if (!ctx) return;
-
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       
-      new Chart(ctx, {
+      window.chartVendas = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: dias,
