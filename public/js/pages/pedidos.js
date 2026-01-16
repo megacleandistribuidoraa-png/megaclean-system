@@ -1009,13 +1009,16 @@ Data: ${new Date(dados.dataEmissao).toLocaleString('pt-BR')}
       </div>
     `;
 
-    document.getElementById('print-content').innerHTML = printContent;
-    document.getElementById('print-area').style.display = 'block';
+    const printContentEl = document.getElementById('print-content');
+    const printArea = document.getElementById('print-area');
+    
+    if (printContentEl) printContentEl.innerHTML = printContent;
+    if (printArea) printArea.style.display = 'block';
 
     setTimeout(() => {
       window.print();
       setTimeout(() => {
-        document.getElementById('print-area').style.display = 'none';
+        if (printArea) printArea.style.display = 'none';
       }, 500);
     }, 300);
   },
