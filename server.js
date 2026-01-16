@@ -27,7 +27,8 @@ const allowedOrigins = [
   'https://erp-system-frontend-st0x.onrender.com', // URL do frontend no Render
   process.env.FRONTEND_URL, // Variável de ambiente (opcional)
   'http://localhost:3000', // Para desenvolvimento local
-  'http://localhost:5000'  // Se usar outra porta local
+  'http://localhost:5000',  // Se usar outra porta local
+  'http://localhost:8080'   // Outra porta comum
 ].filter(Boolean); // Remove valores undefined/null
 
 app.use(cors({
@@ -35,15 +36,18 @@ app.use(cors({
     // Permitir requisições sem origin (mobile apps, Postman, curl, etc)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Permitir qualquer origem do Render ou localhost em desenvolvimento
+    if (origin.includes('onrender.com') || origin.includes('localhost') || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.warn(`CORS bloqueado para origem: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 
 app.use(express.json({ limit: '50mb' }));
@@ -356,6 +360,50 @@ app.post("/api/pedidos", async (req, res) => {
     res.status(201).json(await Pedido.findById(pedido._id).populate('clienteId'));
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// ============================================
+// ROTA DE CONTAS A RECEBER
+// ============================================
+app.get('/api/contas-receber', async (req, res) => {
+  try {
+    // Buscar pedidos com pagamento pendente ou parcial
+    const pedidos = await Pedido.find({
+      $or: [
+        { statusPagamento: 'pendente' },
+        { statusPagamento: 'parcial' }
+      ]
+    })
+    .populate('clienteId')
+    .sort({ dataCriacao: -1 })
+    .lean();
+
+    const contas = pedidos.map(p => {
+      const total = Number(p.total || 0);
+      const valorPago = Number(p.valorPago || 0);
+      const valorDevido = total - valorPago;
+
+      return {
+        _id: p._id,
+        id: p._id.toString().slice(-6),
+        clienteId: p.clienteId?._id || p.clienteId,
+        clienteNome: p.clienteId?.nome || 'Cliente',
+        clienteTelefone: p.clienteId?.telefone || '',
+        total: total,
+        valorPago: valorPago,
+        valorDevido: valorDevido > 0 ? valorDevido : 0,
+        dateISO: p.dateISO || p.dataCriacao,
+        statusPagamento: p.statusPagamento,
+        formaPagamento: p.formaPagamento,
+        dataVencimento: p.dataVencimento
+      };
+    }).filter(c => c.valorDevido > 0);
+
+    res.json(contas);
+  } catch (error) {
+    console.error('Erro em /api/contas-receber:', error);
+    res.json([]);
   }
 });
 

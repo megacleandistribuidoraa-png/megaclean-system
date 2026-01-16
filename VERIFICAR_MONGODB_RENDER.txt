@@ -1,0 +1,40 @@
+# 🔍 Checklist Rápido - Verificar MongoDB no Render
+
+## 1. Ver Logs do Render
+- Acesse: dashboard.render.com
+- Vá no serviço megaclean-system
+- Clique em "Logs"
+- Procure por:
+  ✅ "Conectado ao MongoDB Atlas!" = OK
+  ❌ "MONGODB_URI não definido" = Precisa configurar
+  ❌ "Erro ao conectar ao MongoDB" = String errada ou IP bloqueado
+
+## 2. Verificar Variável MONGODB_URI
+- No Render, vá em "Environment"
+- Procure por MONGODB_URI
+- Se não existir = Adicionar
+- Se existir = Verificar se está correta
+
+## 3. Formato Correto da String
+mongodb+srv://USUARIO:SENHA@cluster0.xxxxx.mongodb.net/megaclean?retryWrites=true&w=majority
+
+IMPORTANTE:
+- Substituir USUARIO pelo seu usuário do MongoDB
+- Substituir SENHA pela senha do usuário
+- Adicionar /megaclean antes do ? (nome do banco)
+
+## 4. Liberar IP no MongoDB Atlas
+- Acesse: cloud.mongodb.com
+- Vá em "Network Access"
+- Adicione "Allow Access from Anywhere" (0.0.0.0/0)
+- Ou adicione o IP específico do Render
+
+## 5. Reiniciar Serviço
+- No Render, clique em "Manual Deploy"
+- Escolha "Deploy latest commit"
+- Aguarde 2-5 minutos
+
+## 6. Verificar Novamente
+- Veja os logs
+- Teste o sistema
+- Verifique se os dados voltaram

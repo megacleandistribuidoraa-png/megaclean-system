@@ -1,0 +1,37 @@
+# ============================================
+# CONFIGURAÇÃO RENDER - STATIC SITE (FRONTEND)
+# ============================================
+# Este arquivo configura o deploy do frontend como Static Site no Render
+# 
+# IMPORTANTE: Este é apenas para o FRONTEND
+# O backend deve ter seu próprio serviço Web Service no Render
+
+services:
+  - type: static
+    name: erp-system-frontend
+    buildCommand: npm install && API_URL=${API_URL} npm run build:frontend
+    staticPublishPath: dist
+    envVars:
+      - key: API_URL
+        # IMPORTANTE: Substitua pela URL real do seu backend
+        # Exemplo: https://megaclean-backend.onrender.com/api
+        value: https://seu-backend.onrender.com/api
+        # Ou use sync para sincronizar com outra variável:
+        # sync: false
+
+# ============================================
+# INSTRUÇÕES:
+# ============================================
+# 1. Certifique-se de que o backend já está rodando no Render
+# 2. Anote a URL do backend (ex: https://megaclean-backend.onrender.com)
+# 3. Substitua 'seu-backend.onrender.com' pela URL real acima
+# 4. Adicione '/api' ao final da URL
+# 5. No Render Dashboard, crie um novo Static Site
+# 6. Conecte este repositório
+# 7. O Render detectará automaticamente este arquivo render-static.yaml
+# 8. Configure a variável de ambiente API_URL no Dashboard também
+#
+# ALTERNATIVA: Configure manualmente no Dashboard:
+# - Build Command: npm install && API_URL=${API_URL} npm run build:frontend
+# - Publish Directory: dist
+# - Environment Variable: API_URL = https://seu-backend.onrender.com/api

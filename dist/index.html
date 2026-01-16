@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#0d9488" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/icon.svg" />
+<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+<title>MegaClean — Login</title>
+<style>
+:root{
+  --bg:#f0f4f8;
+  --card:#fff;
+  --primary:#0d9488;
+  --primary-light:#ccfbf1;
+  --primary-600:#0f766e;
+  --muted:#6b7280;
+  --danger:#dc2626;
+  --radius:16px;
+  --shadow: 0 20px 60px rgba(12,20,30,0.12);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background: linear-gradient(135deg, #ccfbf1 0%, #f0f4f8 50%, #cffafe 100%);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.login-container{
+  display:flex;
+  max-width:900px;
+  width:100%;
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+/* Lado esquerdo - Branding */
+.brand-side{
+  flex:1;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  padding:50px 40px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  color:#fff;
+  position:relative;
+  overflow:hidden;
+}
+.brand-side::before{
+  content:'';
+  position:absolute;
+  top:-50%;
+  right:-50%;
+  width:100%;
+  height:100%;
+  background:rgba(255,255,255,0.05);
+  border-radius:50%;
+}
+.brand-side::after{
+  content:'';
+  position:absolute;
+  bottom:-30%;
+  left:-30%;
+  width:80%;
+  height:80%;
+  background:rgba(255,255,255,0.03);
+  border-radius:50%;
+}
+.brand-logo{
+  width:120px;
+  height:140px;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 20px;
+  z-index:1;
+}
+.brand-logo img,
+.brand-logo svg{
+  width:120px;
+  height:140px;
+  object-fit:contain;
+}
+.brand-title{
+  font-size:42px;
+  font-weight:800;
+  margin:0 0 6px;
+  position:relative;
+  z-index:1;
+  letter-spacing:1px;
+  color:#67e8f9;
+  font-family:'Segoe UI', Arial, sans-serif;
+}
+.brand-subtitle-text{
+  font-size:16px;
+  letter-spacing:6px;
+  opacity:0.95;
+  margin-bottom:20px;
+  position:relative;
+  z-index:1;
+  color:#67e8f9;
+  font-weight:300;
+  font-family:'Segoe UI', Arial, sans-serif;
+}
+.brand-subtitle{
+  font-size:16px;
+  opacity:0.9;
+  line-height:1.6;
+  position:relative;
+  z-index:1;
+}
+.brand-features{
+  margin-top:30px;
+  position:relative;
+  z-index:1;
+}
+.brand-features li{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+  font-size:14px;
+  opacity:0.95;
+}
+.brand-features li::before{
+  content:'✓';
+  width:22px;
+  height:22px;
+  background:rgba(255,255,255,0.2);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+}
+
+/* Lado direito - Formulário */
+.form-side{
+  flex:1;
+  padding:50px 40px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.form-header{
+  margin-bottom:30px;
+}
+.form-header h2{
+  margin:0 0 8px;
+  font-size:24px;
+  color:#0f172a;
+}
+.form-header p{
+  margin:0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.form-group{
+  margin-bottom:20px;
+}
+.form-group label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:#374151;
+  margin-bottom:8px;
+}
+.form-group input{
+  width:100%;
+  padding:14px 16px;
+  border:2px solid #e6e9ef;
+  border-radius:10px;
+  font-size:15px;
+  transition:all .2s;
+  background:#f8fafc;
+}
+.form-group input:focus{
+  outline:none;
+  border-color:var(--primary);
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(13,148,136,0.1);
+}
+.form-group input::placeholder{
+  color:#9ca3af;
+}
+
+.error-message{
+  background:var(--danger);
+  color:#fff;
+  padding:12px 16px;
+  border-radius:10px;
+  font-size:14px;
+  margin-bottom:20px;
+  display:none;
+  align-items:center;
+  gap:8px;
+  animation:shake .4s ease;
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
+.error-message.show{
+  display:flex;
+}
+
+.btn-login{
+  width:100%;
+  padding:14px;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.btn-login:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 25px rgba(13,148,136,0.3);
+}
+.btn-login:active{
+  transform:translateY(0);
+}
+.btn-login:disabled{
+  opacity:0.7;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.credentials-hint{
+  margin-top:24px;
+  padding:16px;
+  background:var(--primary-light);
+  border-radius:10px;
+  text-align:center;
+}
+.credentials-hint p{
+  margin:0;
+  font-size:13px;
+  color:#065f46;
+}
+.credentials-hint strong{
+  color:var(--primary);
+}
+
+.footer-text{
+  margin-top:30px;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+}
+
+/* Responsivo */
+@media (max-width:768px){
+  .login-container{
+    flex-direction:column;
+  }
+  .brand-side{
+    padding:30px;
+    text-align:center;
+  }
+  .brand-logo{font-size:36px}
+  .brand-title{font-size:24px}
+  .brand-features{display:none}
+  .form-side{padding:30px}
+}
+</style>
+</head>
+<body>
+  <div class="login-container">
+    <!-- Lado esquerdo - Branding -->
+    <div class="brand-side">
+      <div class="brand-logo">
+        <img src="/logo.png" alt="MegaClean Logo" style="width:100%;height:100%;object-fit:contain;display:block;">
+      </div>
+      <h1 class="brand-title">MEGACLEAN</h1>
+      <p class="brand-subtitle-text">DISTRIBUIDORA</p>
+      <p class="brand-subtitle">Sistema completo para gestão de produtos de limpeza, clientes e pedidos.</p>
+      
+      <ul class="brand-features">
+        <li>Controle de estoque em tempo real</li>
+        <li>Gestão de clientes e pedidos</li>
+        <li>Relatórios e estatísticas</li>
+        <li>Interface moderna e intuitiva</li>
+      </ul>
+    </div>
+
+    <!-- Lado direito - Formulário -->
+    <div class="form-side">
+      <div class="form-header">
+        <h2>Bem-vindo de volta! 👋</h2>
+        <p>Faça login para acessar o painel administrativo</p>
+      </div>
+
+      <div id="error" class="error-message">
+        <span>⚠️</span>
+        <span id="error-text">Usuário ou senha incorretos</span>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Usuário</label>
+          <input type="text" id="username" placeholder="Digite seu usuário" autocomplete="username" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password" required />
+        </div>
+
+        <button type="submit" class="btn-login" id="btn-login">
+          <span>Entrar</span>
+          <span>→</span>
+        </button>
+      </form>
+
+      <div class="credentials-hint">
+      </div>
+
+      <p class="footer-text">© 2024 MegaClean — Todos os direitos reservados</p>
+    </div>
+  </div>
+
+<!-- Configuração da API - deve ser carregado primeiro -->
+<script src="/js/config.js"></script>
+<script src="/js/api-helper.js"></script>
+<script>
+const form = document.getElementById('login-form');
+const errorDiv = document.getElementById('error');
+const errorText = document.getElementById('error-text');
+const btnLogin = document.getElementById('btn-login');
+
+// Verificar se já está logado
+const existingToken = localStorage.getItem('admin_token');
+if (existingToken) {
+  window.location.href = '/app.html';
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  errorDiv.classList.remove('show');
+  
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+  
+  if (!username || !password) {
+    errorText.textContent = 'Preencha usuário e senha.';
+    errorDiv.classList.add('show');
+    return;
+  }
+
+  try {
+    btnLogin.disabled = true;
+    btnLogin.innerHTML = '<span>Entrando...</span>';
+
+    const apiBase = window.API_BASE_URL || '/api';
+    const res = await fetch(`${apiBase}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      errorText.textContent = json.error || 'Login falhou';
+      errorDiv.classList.add('show');
+      btnLogin.disabled = false;
+      btnLogin.innerHTML = '<span>Entrar</span><span>→</span>';
+      return;
+    }
+
+    // Salvar token, nome e role
+    localStorage.setItem('admin_token', json.token);
+    localStorage.setItem('admin_name', json.name || json.username || 'Admin');
+    localStorage.setItem('admin_role', json.role || 'admin');
+    
+    btnLogin.innerHTML = '<span>✓ Sucesso!</span>';
+    
+    setTimeout(() => {
+      window.location.href = '/app.html';
+    }, 500);
+
+  } catch (e) {
+    errorText.textContent = 'Erro de conexão com o servidor';
+    errorDiv.classList.add('show');
+    btnLogin.disabled = false;
+    btnLogin.innerHTML = '<span>Entrar</span><span>→</span>';
+  }
+});
+
+// Enter para submeter
+document.getElementById('password').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    form.dispatchEvent(new Event('submit'));
+  }
+});
+
+// Registrar Service Worker para PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// Botão de Instalar PWA
+let deferredPrompt;
+const installBtn = document.createElement('button');
+installBtn.id = 'install-btn';
+installBtn.innerHTML = '📱 Instalar App';
+installBtn.style.cssText = 'display:none;position:fixed;bottom:20px;right:20px;background:#0d9488;color:#fff;border:none;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(13,148,136,0.4);z-index:1000;animation:bounce 2s infinite';
+document.body.appendChild(installBtn);
+
+// Adicionar animação
+const style = document.createElement('style');
+style.textContent = '@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}';
+document.head.appendChild(style);
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block';
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    installBtn.style.display = 'none';
+  }
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+});
+</script>
+</body>
+</html>

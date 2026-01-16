@@ -266,7 +266,7 @@ export default {
 
   async carregarClientes() {
     try {
-      const res = await fetch(`${window.API_BASE_URL || '/api'}/clientes`);
+      const res = await fetch(`${API_BASE}/clientes');
       if (!res.ok) throw new Error('Erro');
       this.clientes = await res.json();
       
@@ -282,7 +282,7 @@ export default {
 
   async carregarProdutos() {
     try {
-      const res = await fetch(`${window.API_BASE_URL || '/api'}/produtos`);
+      const res = await fetch(`${API_BASE}/produtos');
       if (!res.ok) throw new Error('Erro');
       this.produtos = await res.json();
       this.atualizarContadoresTipo();
@@ -300,7 +300,7 @@ export default {
 
   async carregarPedidos() {
     try {
-      const res = await fetch(`${window.API_BASE_URL || '/api'}/pedidos`);
+      const res = await fetch(`${API_BASE}/pedidos');
       if (!res.ok) throw new Error('Erro');
       this.pedidos = await res.json();
       
@@ -321,15 +321,10 @@ export default {
     const valorHoje = pedidosHoje.reduce((s, p) => s + (p.total || 0), 0);
     const valorMes = pedidosMes.reduce((s, p) => s + (p.total || 0), 0);
 
-    const elTotal = document.getElementById('stat-total');
-    const elHoje = document.getElementById('stat-hoje');
-    const elValorHoje = document.getElementById('stat-valor-hoje');
-    const elValorMes = document.getElementById('stat-valor-mes');
-    
-    if (elTotal) elTotal.textContent = this.pedidos.length;
-    if (elHoje) elHoje.textContent = pedidosHoje.length;
-    if (elValorHoje) elValorHoje.textContent = (window.Utils || Utils).formatMoney(valorHoje);
-    if (elValorMes) elValorMes.textContent = (window.Utils || Utils).formatMoney(valorMes);
+    document.getElementById('stat-total').textContent = this.pedidos.length;
+    document.getElementById('stat-hoje').textContent = pedidosHoje.length;
+    document.getElementById('stat-valor-hoje').textContent = (window.Utils || Utils).formatMoney(valorHoje);
+    document.getElementById('stat-valor-mes').textContent = (window.Utils || Utils).formatMoney(valorMes);
   },
 
   mudarTipoProduto(tipo) {
@@ -567,7 +562,7 @@ export default {
           motivo: motivo.trim()
         };
 
-        const res = await fetch(`${window.API_BASE_URL || '/api'}/solicitacoes`, {
+        const res = await fetch(`${API_BASE}/solicitacoes', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -597,7 +592,7 @@ export default {
           payload.dataPersonalizada = dataSelecionada;
         }
 
-        const res = await fetch(`${window.API_BASE_URL || '/api'}/pedidos`, {
+        const res = await fetch(`${API_BASE}/pedidos', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -633,15 +628,12 @@ export default {
 
   async carregarMinhasSolicitacoes() {
     if (this.userRole === 'admin') {
-      const solicitacoesCard = document.getElementById('solicitacoes-card');
-      if (solicitacoesCard) {
-        solicitacoesCard.style.display = 'none';
-      }
+      document.getElementById('solicitacoes-card').style.display = 'none';
       return;
     }
 
     try {
-      const res = await fetch(`${window.API_BASE_URL || '/api'}/solicitacoes`, {
+      const res = await fetch(`${API_BASE}/solicitacoes', {
         headers: { 'x-auth-token': this.getToken() }
       });
       

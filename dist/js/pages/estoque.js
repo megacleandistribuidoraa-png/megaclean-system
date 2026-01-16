@@ -179,7 +179,7 @@ export default {
 
   async carregarProdutos() {
     try {
-      const res = await fetch(`${window.API_BASE_URL || '/api'}/produtos`);
+      const res = await fetch(`${API_BASE}/produtos');
       if (!res.ok) throw new Error('Erro ao carregar');
       this.produtos = await res.json();
       
@@ -188,9 +188,7 @@ export default {
       this.atualizarHorario();
     } catch (e) {
       console.error(e);
-      const tableBody = document.getElementById('table-body');
-      if (tableBody) {
-        tableBody.innerHTML = `
+      document.getElementById('table-body').innerHTML = `
         <tr>
           <td colspan="7" class="empty-state" style="text-align:center;padding:60px 20px;color:var(--muted)">
             <div class="icon" style="font-size:48px;margin-bottom:12px">❌</div>
@@ -199,7 +197,6 @@ export default {
           </td>
         </tr>
       `;
-      }
     }
   },
 
@@ -216,15 +213,10 @@ export default {
       totalItens += p.quantidade || 0;
     });
 
-    const elTotal = document.getElementById('stat-total');
-    const elOk = document.getElementById('stat-ok');
-    const elLow = document.getElementById('stat-low');
-    const elCritical = document.getElementById('stat-critical');
-    
-    if (elTotal) elTotal.textContent = stats.total;
-    if (elOk) elOk.textContent = stats.ok;
-    if (elLow) elLow.textContent = stats.low;
-    if (elCritical) elCritical.textContent = stats.critical;
+    document.getElementById('stat-total').textContent = stats.total;
+    document.getElementById('stat-ok').textContent = stats.ok;
+    document.getElementById('stat-low').textContent = stats.low;
+    document.getElementById('stat-critical').textContent = stats.critical;
     document.getElementById('valor-total').textContent = this.formatMoney(valorTotal);
     document.getElementById('total-itens').textContent = totalItens + ' unidades';
   },
