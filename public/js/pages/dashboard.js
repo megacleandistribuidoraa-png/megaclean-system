@@ -349,31 +349,30 @@ export default {
           if (elPedidosMes) elPedidosMes.textContent = stats.countMonth || 0;
         } catch (e) {
           console.warn('Erro ao processar resposta de stats:', e);
-          // Usar valores padrão em caso de erro
-          const elVendasHoje = document.getElementById('stat-vendas-hoje');
-          const elPedidosHoje = document.getElementById('stat-pedidos-hoje');
-          const elVendasMes = document.getElementById('stat-vendas-mes');
-          const elPedidosMes = document.getElementById('stat-pedidos-mes');
-          if (elVendasHoje) elVendasHoje.textContent = 'R$ 0,00';
-          if (elPedidosHoje) elPedidosHoje.textContent = '0';
-          if (elVendasMes) elVendasMes.textContent = 'R$ 0,00';
-          if (elPedidosMes) elPedidosMes.textContent = '0';
+          this.setDefaultStats();
         }
       } else {
         // Se a API retornar erro, usar valores padrão
         console.warn('API /pedidos/stats retornou erro:', statsRes.status);
-        const elVendasHoje = document.getElementById('stat-vendas-hoje');
-        const elPedidosHoje = document.getElementById('stat-pedidos-hoje');
-        const elVendasMes = document.getElementById('stat-vendas-mes');
-        const elPedidosMes = document.getElementById('stat-pedidos-mes');
-        if (elVendasHoje) elVendasHoje.textContent = 'R$ 0,00';
-        if (elPedidosHoje) elPedidosHoje.textContent = '0';
-        if (elVendasMes) elVendasMes.textContent = 'R$ 0,00';
-        if (elPedidosMes) elPedidosMes.textContent = '0';
+        this.setDefaultStats();
       }
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
+      this.setDefaultStats();
     }
+  },
+
+  setDefaultStats() {
+    // Função auxiliar para definir valores padrão quando há erro
+    const elVendasHoje = document.getElementById('stat-vendas-hoje');
+    const elPedidosHoje = document.getElementById('stat-pedidos-hoje');
+    const elVendasMes = document.getElementById('stat-vendas-mes');
+    const elPedidosMes = document.getElementById('stat-pedidos-mes');
+    
+    if (elVendasHoje) elVendasHoje.textContent = 'R$ 0,00';
+    if (elPedidosHoje) elPedidosHoje.textContent = '0';
+    if (elVendasMes) elVendasMes.textContent = 'R$ 0,00';
+    if (elPedidosMes) elPedidosMes.textContent = '0';
   },
 
   async loadChart() {
