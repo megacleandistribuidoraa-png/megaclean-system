@@ -174,6 +174,18 @@ class Router {
     const hash = window.location.hash.slice(1) || 'dashboard';
     const [path, ...params] = hash.split('/');
     
+    // Evitar processamento duplicado
+    if (this._processingRoute === path) {
+      console.log('Router: Rota já está sendo processada, ignorando', path);
+      return;
+    }
+    
+    // Se já estamos na mesma rota e não estamos navegando, ignorar
+    if (this.currentRoute === path && !this.isNavigating) {
+      console.log('Router: Já estamos na rota, ignorando', path);
+      return;
+    }
+    
     console.log('Router: handleRoute - path:', path, 'rotas disponíveis:', Array.from(this.routes.keys()));
     
     // Se a rota não existe, aguardar ou redirecionar
@@ -209,6 +221,7 @@ class Router {
         `;
       }
       this.currentRoute = path;
+      this._processingRoute = null;
       return;
     }
     
@@ -217,9 +230,17 @@ class Router {
     if (handler) {
       console.log('Router: Executando handler para:', path);
       this.currentRoute = path;
-      handler(path, ...params);
+      this._processingRoute = path;
+      
+      // Executar handler e resetar flag após conclusão
+      Promise.resolve(handler(path, ...params)).finally(() => {
+        setTimeout(() => {
+          this._processingRoute = null;
+        }, 100);
+      });
     } else {
       console.error('Router: Handler não encontrado para:', path);
+      this._processingRoute = null;
     }
   }
 
@@ -334,6 +355,9 @@ class PageManager {
       }
 
       this.currentPage = component;
+      this.currentPage._intervals = [];
+      this.currentPage._timeouts = [];
+      this.loadingPage = null;
       console.log('PageManager: Página carregada com sucesso', name);
     } catch (error) {
       console.error('PageManager: Erro ao carregar página:', error);
@@ -344,6 +368,7 @@ class PageManager {
           <pre style="font-size:12px;margin-top:10px;background:#f5f5f5;padding:10px;border-radius:4px;overflow:auto">${error.stack || error.toString()}</pre>
         </div>
       `;
+      this.loadingPage = null;
     }
   }
 }

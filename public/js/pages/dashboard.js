@@ -431,39 +431,52 @@ export default {
 
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       
-      window.chartVendas = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: dias,
-          datasets: [{
-            label: 'Vendas (R$)',
-            data: vendas,
-            backgroundColor: '#0d9488',
-            borderRadius: 8
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
+      try {
+        window.chartVendas = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: dias,
+            datasets: [{
+              label: 'Vendas (R$)',
+              data: vendas,
+              backgroundColor: '#0d9488',
+              borderRadius: 8
+            }]
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: { color: isDark ? '#334155' : '#f0f0f0' },
-              ticks: {
-                callback: function(value) {
-                  return 'R$ ' + value.toFixed(0);
-                }
-              }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
             },
-            x: {
-              grid: { display: false }
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: isDark ? '#334155' : '#f0f0f0' },
+                ticks: {
+                  callback: function(value) {
+                    return 'R$ ' + value.toFixed(0);
+                  }
+                }
+              },
+              x: {
+                grid: { display: false }
+              }
             }
           }
+        });
+      } catch (chartError) {
+        console.error('Erro ao criar gráfico:', chartError);
+        // Se ainda houver gráfico antigo, tentar destruir novamente
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+          try {
+            existingChart.destroy();
+          } catch (e) {
+            // Ignorar
+          }
         }
-      });
+      }
     } catch (error) {
       console.error('Erro ao carregar gráfico:', error);
     }
