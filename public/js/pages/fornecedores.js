@@ -185,16 +185,26 @@ export default {
   },
 
   async salvar() {
-    const id = document.getElementById('forn-id').value;
+    const fornId = document.getElementById('forn-id');
+    const fornNome = document.getElementById('forn-nome');
+    const fornCnpj = document.getElementById('forn-cnpj');
+    const fornTelefone = document.getElementById('forn-telefone');
+    const fornEmail = document.getElementById('forn-email');
+    const fornContato = document.getElementById('forn-contato');
+    const fornEndereco = document.getElementById('forn-endereco');
+    const fornObs = document.getElementById('forn-obs');
+    const fornStatus = document.getElementById('forn-status');
+    
+    const id = fornId ? fornId.value : '';
     const data = {
-      nome: document.getElementById('forn-nome').value,
-      cnpj: document.getElementById('forn-cnpj').value,
-      telefone: document.getElementById('forn-telefone').value,
-      email: document.getElementById('forn-email').value,
-      contato: document.getElementById('forn-contato').value,
-      endereco: document.getElementById('forn-endereco').value,
-      observacoes: document.getElementById('forn-obs').value,
-      status: document.getElementById('forn-status').value
+      nome: fornNome ? fornNome.value : '',
+      cnpj: fornCnpj ? fornCnpj.value : '',
+      telefone: fornTelefone ? fornTelefone.value : '',
+      email: fornEmail ? fornEmail.value : '',
+      contato: fornContato ? fornContato.value : '',
+      endereco: fornEndereco ? fornEndereco.value : '',
+      observacoes: fornObs ? fornObs.value : '',
+      status: fornStatus ? fornStatus.value : 'ativo'
     };
     
     if (!data.nome) { 

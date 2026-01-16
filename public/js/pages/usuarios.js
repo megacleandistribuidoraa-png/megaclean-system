@@ -316,7 +316,8 @@ export default {
     if (!usuario) return;
 
     this.deletandoId = id;
-    document.getElementById('delete-nome').textContent = usuario.nome;
+    const deleteNome = document.getElementById('delete-nome');
+    if (deleteNome) deleteNome.textContent = usuario.nome;
     document.getElementById('modal-delete').classList.add('show');
   },
 
@@ -367,7 +368,7 @@ export default {
       }
 
       const payload = { nome, username, role, status };
-      if (password) payload.password = password;
+      if (passwordValue) payload.password = passwordValue;
 
       try {
         const url = this.editandoId ? `/api/usuarios/${this.editandoId}` : '/api/usuarios';
