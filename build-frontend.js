@@ -54,54 +54,10 @@ if (fs.existsSync(configPath)) {
   console.log('✅ Configuração da API atualizada');
 }
 
-// Substituir URLs relativas em arquivos JavaScript
-console.log('🔍 Atualizando referências em arquivos JavaScript...');
-const jsFiles = [];
-function findJsFiles(dir) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      findJsFiles(fullPath);
-    } else if (entry.name.endsWith('.js')) {
-      jsFiles.push(fullPath);
-    }
-  }
-}
-findJsFiles(BUILD_DIR);
-
-// Substituir fetch('/api por fetch usando API_BASE
-jsFiles.forEach(file => {
-  let content = fs.readFileSync(file, 'utf8');
-  
-  // Substituir fetch('/api/...') por fetch(`${API_BASE}/...`)
-  // Mas apenas se não estiver usando window.API_BASE_URL ou Utils.getApiUrl já
-  content = content.replace(
-    /fetch\(['"]\/api\//g,
-    (match) => {
-      // Verificar se já usa API_BASE ou Utils
-      const before = content.substring(Math.max(0, content.lastIndexOf('\n', content.indexOf(match))), content.indexOf(match));
-      if (before.includes('API_BASE') || before.includes('getApiUrl') || before.includes('API_BASE_URL')) {
-        return match; // Já está usando configuração
-      }
-      return `fetch(\`\${API_BASE}/`;
-    }
-  );
-  
-  // Substituir fetch('/api') (sem barra final) também
-  content = content.replace(
-    /fetch\(['"]\/api['"]/g,
-    (match) => {
-      const before = content.substring(Math.max(0, content.lastIndexOf('\n', content.indexOf(match))), content.indexOf(match));
-      if (before.includes('API_BASE') || before.includes('getApiUrl') || before.includes('API_BASE_URL')) {
-        return match;
-      }
-      return `fetch(\`\${API_BASE}\``;
-    }
-  );
-  
-  fs.writeFileSync(file, content);
-});
+// NOTA: Não modificamos arquivos JS automaticamente para evitar quebrar código
+// Os arquivos JS usam caminhos relativos '/api' que funcionam quando servidos
+// do mesmo domínio, ou podem usar window.API_BASE_URL se necessário
+// Apenas o config.js é modificado para definir window.API_BASE_URL
 
 // Substituir URLs relativas em arquivos HTML (scripts inline)
 console.log('🔍 Atualizando referências em arquivos HTML...');
