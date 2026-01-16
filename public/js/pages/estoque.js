@@ -204,19 +204,27 @@ export default {
   },
 
   atualizarEstatisticas() {
+    // Verificar se os elementos existem antes de continuar
+    const elTotal = document.getElementById('stat-total');
+    if (!elTotal) {
+      console.warn('Elementos de estatísticas não encontrados, pulando atualização');
+      return;
+    }
+
     const stats = { total: 0, ok: 0, low: 0, critical: 0 };
     let valorTotal = 0;
     let totalItens = 0;
 
-    this.produtos.forEach(p => {
-      stats.total++;
-      const status = this.getStockStatus(p);
-      stats[status]++;
-      valorTotal += (p.quantidade || 0) * (p.preco || 0);
-      totalItens += p.quantidade || 0;
-    });
+    if (Array.isArray(this.produtos)) {
+      this.produtos.forEach(p => {
+        stats.total++;
+        const status = this.getStockStatus(p);
+        stats[status]++;
+        valorTotal += (p.quantidade || 0) * (p.preco || 0);
+        totalItens += p.quantidade || 0;
+      });
+    }
 
-    const elTotal = document.getElementById('stat-total');
     const elOk = document.getElementById('stat-ok');
     const elLow = document.getElementById('stat-low');
     const elCritical = document.getElementById('stat-critical');
@@ -225,12 +233,20 @@ export default {
     if (elOk) elOk.textContent = stats.ok;
     if (elLow) elLow.textContent = stats.low;
     if (elCritical) elCritical.textContent = stats.critical;
-    document.getElementById('valor-total').textContent = this.formatMoney(valorTotal);
-    document.getElementById('total-itens').textContent = totalItens + ' unidades';
+    
+    const elValorTotal = document.getElementById('valor-total');
+    const elTotalItens = document.getElementById('total-itens');
+    if (elValorTotal) elValorTotal.textContent = this.formatMoney(valorTotal);
+    if (elTotalItens) elTotalItens.textContent = totalItens + ' unidades';
   },
 
   renderizarTabela() {
     const tbody = document.getElementById('table-body');
+    if (!tbody) {
+      console.warn('Elemento table-body não encontrado, pulando renderização');
+      return;
+    }
+    
     const searchTerm = document.getElementById('search')?.value.toLowerCase() || '';
     
     let lista = this.produtos.filter(p => {
