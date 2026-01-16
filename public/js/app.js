@@ -235,6 +235,7 @@ class PageManager {
   constructor() {
     this.pages = new Map();
     this.currentPage = null;
+    this.loadingPage = null;
   }
 
   register(name, component) {
@@ -242,20 +243,53 @@ class PageManager {
   }
 
   async load(name, ...params) {
+    // Evitar reload duplicado
+    if (this.loadingPage === name) {
+      console.log('PageManager: Página já está sendo carregada, ignorando', name);
+      return;
+    }
+    
     console.log('PageManager: Carregando página', name);
+    this.loadingPage = name;
     
     const pageContent = document.getElementById('page-content');
     if (!pageContent) {
       console.error('PageManager: Elemento page-content não encontrado no DOM');
+      this.loadingPage = null;
       return;
     }
     
-    // Ocultar página atual
-    if (this.currentPage && this.currentPage.onUnload) {
-      try {
-        this.currentPage.onUnload();
-      } catch (e) {
-        console.error('Erro ao descarregar página atual:', e);
+    // Cleanup da página atual ANTES de carregar nova
+    if (this.currentPage) {
+      // Limpar intervalos
+      if (this.currentPage._intervals) {
+        this.currentPage._intervals.forEach(id => clearInterval(id));
+        this.currentPage._intervals = [];
+      }
+      
+      // Limpar timeouts
+      if (this.currentPage._timeouts) {
+        this.currentPage._timeouts.forEach(id => clearTimeout(id));
+        this.currentPage._timeouts = [];
+      }
+      
+      // Destruir gráficos Chart.js
+      if (window.chartVendas) {
+        try {
+          window.chartVendas.destroy();
+        } catch (e) {
+          // Ignorar erro se já foi destruído
+        }
+        window.chartVendas = null;
+      }
+      
+      // Chamar onUnload se existir
+      if (this.currentPage.onUnload) {
+        try {
+          this.currentPage.onUnload();
+        } catch (e) {
+          console.error('Erro ao descarregar página atual:', e);
+        }
       }
     }
 

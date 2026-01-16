@@ -153,8 +153,26 @@ export default {
     this.atualizarHorario();
     this.setupEventListeners();
     
-    // Auto-refresh a cada 30 segundos
-    setInterval(() => this.carregarProdutos(), 30000);
+    // Auto-refresh a cada 30 segundos (com cleanup)
+    if (!this._intervals) this._intervals = [];
+    const intervalId = setInterval(() => {
+      // Verificar se ainda estamos na página de estoque
+      const statTotal = document.getElementById('stat-total');
+      if (!statTotal) {
+        clearInterval(intervalId);
+        return;
+      }
+      this.carregarProdutos();
+    }, 30000);
+    this._intervals.push(intervalId);
+  },
+
+  onUnload() {
+    // Limpar intervalos ao sair da página
+    if (this._intervals) {
+      this._intervals.forEach(id => clearInterval(id));
+      this._intervals = [];
+    }
   },
 
   formatMoney(valor) {

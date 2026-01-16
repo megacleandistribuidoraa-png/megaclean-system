@@ -336,16 +336,40 @@ export default {
       });
       
       if (statsRes.ok) {
-        const stats = await statsRes.json();
+        try {
+          const stats = await statsRes.json();
+          const elVendasHoje = document.getElementById('stat-vendas-hoje');
+          const elPedidosHoje = document.getElementById('stat-pedidos-hoje');
+          const elVendasMes = document.getElementById('stat-vendas-mes');
+          const elPedidosMes = document.getElementById('stat-pedidos-mes');
+          
+          if (elVendasHoje) elVendasHoje.textContent = (window.Utils || Utils).formatMoney(stats.totalToday || 0);
+          if (elPedidosHoje) elPedidosHoje.textContent = stats.countToday || 0;
+          if (elVendasMes) elVendasMes.textContent = (window.Utils || Utils).formatMoney(stats.totalMonth || 0);
+          if (elPedidosMes) elPedidosMes.textContent = stats.countMonth || 0;
+        } catch (e) {
+          console.warn('Erro ao processar resposta de stats:', e);
+          // Usar valores padrão em caso de erro
+          const elVendasHoje = document.getElementById('stat-vendas-hoje');
+          const elPedidosHoje = document.getElementById('stat-pedidos-hoje');
+          const elVendasMes = document.getElementById('stat-vendas-mes');
+          const elPedidosMes = document.getElementById('stat-pedidos-mes');
+          if (elVendasHoje) elVendasHoje.textContent = 'R$ 0,00';
+          if (elPedidosHoje) elPedidosHoje.textContent = '0';
+          if (elVendasMes) elVendasMes.textContent = 'R$ 0,00';
+          if (elPedidosMes) elPedidosMes.textContent = '0';
+        }
+      } else {
+        // Se a API retornar erro, usar valores padrão
+        console.warn('API /pedidos/stats retornou erro:', statsRes.status);
         const elVendasHoje = document.getElementById('stat-vendas-hoje');
         const elPedidosHoje = document.getElementById('stat-pedidos-hoje');
         const elVendasMes = document.getElementById('stat-vendas-mes');
         const elPedidosMes = document.getElementById('stat-pedidos-mes');
-        
-        if (elVendasHoje) elVendasHoje.textContent = (window.Utils || Utils).formatMoney(stats.totalToday || 0);
-        if (elPedidosHoje) elPedidosHoje.textContent = stats.countToday || 0;
-        if (elVendasMes) elVendasMes.textContent = (window.Utils || Utils).formatMoney(stats.totalMonth || 0);
-        if (elPedidosMes) elPedidosMes.textContent = stats.countMonth || 0;
+        if (elVendasHoje) elVendasHoje.textContent = 'R$ 0,00';
+        if (elPedidosHoje) elPedidosHoje.textContent = '0';
+        if (elVendasMes) elVendasMes.textContent = 'R$ 0,00';
+        if (elPedidosMes) elPedidosMes.textContent = '0';
       }
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
@@ -357,24 +381,24 @@ export default {
       const ctx = document.getElementById('chart-vendas');
       if (!ctx) return;
 
-      // Destruir gráfico anterior se existir
+      // Destruir TODOS os gráficos existentes no canvas
+      const existingChart = Chart.getChart(ctx);
+      if (existingChart) {
+        try {
+          existingChart.destroy();
+        } catch (e) {
+          console.warn('Erro ao destruir gráfico existente:', e);
+        }
+      }
+
+      // Destruir referência global se existir
       if (window.chartVendas) {
         try {
           window.chartVendas.destroy();
         } catch (e) {
-          // Ignorar erro se o gráfico já foi destruído
+          // Ignorar erro se já foi destruído
         }
         window.chartVendas = null;
-      }
-
-      // Limpar canvas antes de criar novo gráfico
-      const chartInstance = Chart.getChart(ctx);
-      if (chartInstance) {
-        try {
-          chartInstance.destroy();
-        } catch (e) {
-          // Ignorar erro
-        }
       }
 
       const apiBase = window.API_BASE_URL || '/api';
