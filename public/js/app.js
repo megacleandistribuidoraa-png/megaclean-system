@@ -2,8 +2,8 @@
 // MEGA CLEAN - SISTEMA MODERNO E DINÂMICO
 // ============================================
 
-// Configuração da API
-const API_BASE = '/api';
+// Configuração da API - usa window.API_BASE_URL se disponível (definido em config.js)
+const API_BASE = (window.API_BASE_URL || '/api').replace(/\/$/, ''); // Remove trailing slash
 const API_CONFIG = {
   headers: {
     'Content-Type': 'application/json'
@@ -60,6 +60,13 @@ const Utils = {
   // Obter token de autenticação
   getAuthToken() {
     return localStorage.getItem('admin_token');
+  },
+
+  // Obter URL completa da API
+  getApiUrl(path = '') {
+    const base = API_BASE;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `${base}${cleanPath}`;
   },
 
   // Obter headers com autenticação

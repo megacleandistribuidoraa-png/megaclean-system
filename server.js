@@ -21,7 +21,31 @@ const ConfigNFe = require('./models/ConfigNFe');
 const Usuario = require('./models/Usuario');
 
 const app = express();
-app.use(cors());
+
+// Configurar CORS para permitir requisições do frontend
+const allowedOrigins = [
+  'https://erp-system-frontend-st0x.onrender.com', // URL do frontend no Render
+  process.env.FRONTEND_URL, // Variável de ambiente (opcional)
+  'http://localhost:3000', // Para desenvolvimento local
+  'http://localhost:5000'  // Se usar outra porta local
+].filter(Boolean); // Remove valores undefined/null
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permitir requisições sem origin (mobile apps, Postman, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
