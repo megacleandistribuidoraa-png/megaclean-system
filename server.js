@@ -171,9 +171,22 @@ app.get("/api/clientes", async (req, res) => {
       return res.json([]);
     }
     
+    // Buscar todos os clientes sem filtro primeiro
+    const todosClientes = await Cliente.find();
+    console.log(`🔍 Total de clientes no banco (sem sort): ${todosClientes.length}`);
+    console.log(`📝 Todos os clientes:`, todosClientes.map(c => `${c.nome || 'Sem nome'} (${c._id})`));
+    
+    // Agora buscar com sort
     const clientes = await Cliente.find().sort({ dataCriacao: -1 });
-    console.log(`📋 GET /api/clientes: Retornando ${clientes.length} clientes`);
-    console.log(`📝 Nomes dos clientes:`, clientes.map(c => `${c.nome} (${c._id})`));
+    console.log(`📋 GET /api/clientes: Retornando ${clientes.length} clientes (com sort)`);
+    console.log(`📝 Nomes dos clientes (com sort):`, clientes.map(c => `${c.nome || 'Sem nome'} (${c._id})`));
+    
+    // Verificar se há clientes sem dataCriacao
+    const clientesSemData = await Cliente.find({ dataCriacao: { $exists: false } });
+    if (clientesSemData.length > 0) {
+      console.log(`⚠️ Encontrados ${clientesSemData.length} clientes sem dataCriacao:`, clientesSemData.map(c => c.nome));
+    }
+    
     res.json(clientes);
   } catch (error) {
     console.error('Erro em /api/clientes:', error.message || error);
@@ -200,9 +213,21 @@ app.post("/api/clientes", async (req, res) => {
       return res.status(503).json({ error: 'Banco de dados não está conectado. Tente novamente em alguns instantes.' });
     }
     
+    console.log('📥 Dados recebidos no POST /api/clientes:', req.body);
     const novo = new Cliente(req.body);
+    console.log('📝 Cliente criado (antes de salvar):', novo);
     const clienteSalvo = await novo.save();
-    console.log(`✅ Cliente salvo: ${clienteSalvo.nome} (ID: ${clienteSalvo._id})`);
+    console.log(`✅ Cliente salvo no banco: ${clienteSalvo.nome} (ID: ${clienteSalvo._id})`);
+    console.log('📋 Cliente completo salvo:', JSON.stringify(clienteSalvo, null, 2));
+    
+    // Verificar se o cliente realmente foi salvo fazendo uma busca
+    const clienteVerificado = await Cliente.findById(clienteSalvo._id);
+    if (clienteVerificado) {
+      console.log('✅ Cliente verificado no banco após salvar:', clienteVerificado.nome);
+    } else {
+      console.error('❌ ERRO: Cliente não encontrado no banco após salvar!');
+    }
+    
     res.status(201).json(clienteSalvo);
   } catch (error) {
     console.error('Erro ao salvar cliente:', error);
