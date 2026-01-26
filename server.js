@@ -171,15 +171,27 @@ app.get("/api/clientes", async (req, res) => {
       return res.json([]);
     }
     
-    // Buscar todos os clientes sem filtro primeiro
-    const todosClientes = await Cliente.find();
+    // Buscar TODOS os clientes sem nenhum filtro
+    const todosClientes = await Cliente.find({});
     console.log(`🔍 Total de clientes no banco (sem sort): ${todosClientes.length}`);
-    console.log(`📝 Todos os clientes:`, todosClientes.map(c => `${c.nome || 'Sem nome'} (${c._id})`));
+    console.log(`📝 Todos os clientes (detalhado):`, todosClientes.map(c => ({
+      nome: c.nome,
+      id: c._id,
+      dataCriacao: c.dataCriacao,
+      status: c.status
+    })));
     
-    // Agora buscar com sort
-    const clientes = await Cliente.find().sort({ dataCriacao: -1 });
-    console.log(`📋 GET /api/clientes: Retornando ${clientes.length} clientes (com sort)`);
-    console.log(`📝 Nomes dos clientes (com sort):`, clientes.map(c => `${c.nome || 'Sem nome'} (${c._id})`));
+    // Buscar com sort - usar createdAt como fallback se dataCriacao não existir
+    let clientes = await Cliente.find({}).sort({ dataCriacao: -1, createdAt: -1, _id: -1 });
+    
+    // Se não retornou todos, tentar sem sort
+    if (clientes.length !== todosClientes.length) {
+      console.log(`⚠️ Sort retornou ${clientes.length} clientes, mas há ${todosClientes.length} no total. Buscando sem sort...`);
+      clientes = await Cliente.find({});
+    }
+    
+    console.log(`📋 GET /api/clientes: Retornando ${clientes.length} clientes`);
+    console.log(`📝 Nomes dos clientes retornados:`, clientes.map(c => `${c.nome || 'Sem nome'} (${c._id})`));
     
     // Verificar se há clientes sem dataCriacao
     const clientesSemData = await Cliente.find({ dataCriacao: { $exists: false } });
