@@ -196,6 +196,11 @@ export default {
       const data = await res.json();
       this.clientes = Array.isArray(data) ? data : [];
       
+      // Log detalhado dos clientes recebidos
+      console.log(`📥 Dados recebidos da API:`, data);
+      console.log(`📊 Array de clientes:`, this.clientes);
+      console.log(`📝 Nomes dos clientes:`, this.clientes.map(c => c.nome || 'Sem nome'));
+      
       // Garantir que a lista está ordenada (mais recentes primeiro)
       this.clientes.sort((a, b) => {
         const dateA = new Date(a.dataCriacao || a.createdAt || 0);
@@ -405,7 +410,8 @@ export default {
           if (!this.editandoId && clienteSalvo) {
             // Adicionar no início da lista
             this.clientes.unshift(clienteSalvo);
-            console.log('➕ Cliente adicionado à lista localmente');
+            console.log('➕ Cliente adicionado à lista localmente:', clienteSalvo.nome, clienteSalvo._id);
+            console.log('📋 Total na lista local agora:', this.clientes.length);
           } else if (this.editandoId && clienteSalvo) {
             // Se for edição, atualizar o cliente na lista
             const index = this.clientes.findIndex(c => c._id === this.editandoId);

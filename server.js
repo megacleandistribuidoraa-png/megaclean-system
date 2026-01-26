@@ -173,6 +173,7 @@ app.get("/api/clientes", async (req, res) => {
     
     const clientes = await Cliente.find().sort({ dataCriacao: -1 });
     console.log(`📋 GET /api/clientes: Retornando ${clientes.length} clientes`);
+    console.log(`📝 Nomes dos clientes:`, clientes.map(c => `${c.nome} (${c._id})`));
     res.json(clientes);
   } catch (error) {
     console.error('Erro em /api/clientes:', error.message || error);
