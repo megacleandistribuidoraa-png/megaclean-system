@@ -379,12 +379,39 @@ export default {
         body: JSON.stringify(data)
       });
 
+      // Verificar se a resposta está OK
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Erro ao salvar cliente');
+        let errorMessage = `Erro ${res.status}: ${res.statusText}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Se não conseguir fazer parse do erro, usar a mensagem padrão
+          const text = await res.text().catch(() => '');
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
       }
 
-      const clienteSalvo = await res.json();
+      // Verificar se a resposta tem conteúdo antes de fazer parse
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Se não for JSON, tentar ler como texto
+        const text = await res.text();
+        if (text.trim()) {
+          console.warn('Resposta não é JSON:', text);
+        }
+        // Continuar mesmo sem JSON - o cliente foi salvo
+      } else {
+        // Tentar fazer parse do JSON
+        try {
+          const clienteSalvo = await res.json();
+          console.log('✅ Cliente salvo:', clienteSalvo);
+        } catch (jsonError) {
+          console.warn('Erro ao fazer parse do JSON da resposta:', jsonError);
+          // Continuar mesmo assim - o cliente provavelmente foi salvo
+        }
+      }
       
       (window.toastManager || toastManager).success(
         this.editandoId ? '✅ Cliente atualizado!' : '✅ Cliente cadastrado!'

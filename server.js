@@ -191,21 +191,37 @@ app.get("/api/clientes/:id", async (req, res) => {
 
 app.post("/api/clientes", async (req, res) => {
   try {
+    // Verificar se MongoDB está conectado
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB não está conectado em POST /api/clientes');
+      return res.status(503).json({ error: 'Banco de dados não está conectado. Tente novamente em alguns instantes.' });
+    }
+    
     const novo = new Cliente(req.body);
-    await novo.save();
-    res.status(201).json(novo);
+    const clienteSalvo = await novo.save();
+    res.status(201).json(clienteSalvo);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Erro ao salvar cliente:', error);
+    res.status(400).json({ error: error.message || 'Erro ao salvar cliente' });
   }
 });
 
 app.put("/api/clientes/:id", async (req, res) => {
   try {
+    // Verificar se MongoDB está conectado
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB não está conectado em PUT /api/clientes/:id');
+      return res.status(503).json({ error: 'Banco de dados não está conectado. Tente novamente em alguns instantes.' });
+    }
+    
     const cliente = await Cliente.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!cliente) return res.status(404).json({ error: "Cliente não encontrado" });
     res.json(cliente);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Erro ao atualizar cliente:', error);
+    res.status(400).json({ error: error.message || 'Erro ao atualizar cliente' });
   }
 });
 
