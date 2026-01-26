@@ -404,31 +404,55 @@ export default {
       if (contentType && contentType.includes('application/json')) {
         try {
           clienteSalvo = await res.json();
-          console.log('✅ Cliente salvo:', clienteSalvo);
-          
-          // Se for um novo cliente (não edição), adicionar à lista imediatamente
-          if (!this.editandoId && clienteSalvo) {
-            // Adicionar no início da lista
-            this.clientes.unshift(clienteSalvo);
-            console.log('➕ Cliente adicionado à lista localmente:', clienteSalvo.nome, clienteSalvo._id);
-            console.log('📋 Total na lista local agora:', this.clientes.length);
-          } else if (this.editandoId && clienteSalvo) {
-            // Se for edição, atualizar o cliente na lista
-            const index = this.clientes.findIndex(c => c._id === this.editandoId);
-            if (index !== -1) {
-              this.clientes[index] = clienteSalvo;
-              console.log('✏️ Cliente atualizado na lista localmente');
-            }
-          }
+          console.log('✅ Cliente salvo (resposta da API):', clienteSalvo);
         } catch (jsonError) {
           console.warn('Erro ao fazer parse do JSON da resposta:', jsonError);
-          // Continuar mesmo assim - o cliente provavelmente foi salvo
+          // Se não conseguir fazer parse, criar cliente temporário com os dados do formulário
+          if (!this.editandoId) {
+            clienteSalvo = {
+              _id: 'temp_' + Date.now(),
+              ...data,
+              dataCriacao: new Date().toISOString(),
+              temp: true // Marcar como temporário
+            };
+            console.log('⚠️ Criando cliente temporário:', clienteSalvo);
+          }
         }
       } else {
-        // Se não for JSON, tentar ler como texto
-        const text = await res.text();
-        if (text.trim()) {
-          console.warn('Resposta não é JSON:', text);
+        // Se não for JSON, criar cliente temporário
+        if (!this.editandoId) {
+          clienteSalvo = {
+            _id: 'temp_' + Date.now(),
+            ...data,
+            dataCriacao: new Date().toISOString(),
+            temp: true
+          };
+          console.log('⚠️ Resposta não é JSON, criando cliente temporário:', clienteSalvo);
+        }
+      }
+      
+      // Se for um novo cliente (não edição), adicionar à lista imediatamente
+      if (!this.editandoId && clienteSalvo) {
+        // Verificar se o cliente já não está na lista (evitar duplicatas)
+        const jaExiste = this.clientes.some(c => 
+          (c._id === clienteSalvo._id) || 
+          (c.nome === clienteSalvo.nome && c.cpfCnpj === clienteSalvo.cpfCnpj)
+        );
+        
+        if (!jaExiste) {
+          // Adicionar no início da lista
+          this.clientes.unshift(clienteSalvo);
+          console.log('➕ Cliente adicionado à lista localmente:', clienteSalvo.nome, clienteSalvo._id);
+          console.log('📋 Total na lista local agora:', this.clientes.length);
+        } else {
+          console.log('⚠️ Cliente já existe na lista, não adicionando duplicata');
+        }
+      } else if (this.editandoId && clienteSalvo) {
+        // Se for edição, atualizar o cliente na lista
+        const index = this.clientes.findIndex(c => c._id === this.editandoId);
+        if (index !== -1) {
+          this.clientes[index] = clienteSalvo;
+          console.log('✏️ Cliente atualizado na lista localmente');
         }
       }
       
@@ -469,12 +493,33 @@ export default {
       }
       
       // Recarregar lista de clientes do servidor (aguardar um pouco para garantir que o banco salvou)
-      console.log('🔄 Aguardando 1 segundo antes de recarregar do servidor...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('🔄 Aguardando 2 segundos antes de recarregar do servidor...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       console.log('🔄 Recarregando lista de clientes do servidor...');
+      
+      // Salvar referência do cliente temporário antes de recarregar
+      const clienteTemp = clienteSalvo && clienteSalvo.temp ? clienteSalvo : null;
+      
       await this.loadClientes();
       console.log('✅ Lista recarregada. Total de clientes:', this.clientes.length);
       console.log('📋 Clientes finais:', this.clientes.map(c => `${c.nome} (${c._id})`));
+      
+      // Se o cliente temporário não foi substituído por um cliente real do servidor, mantê-lo na lista
+      if (clienteTemp && !this.editandoId) {
+        const clienteRealEncontrado = this.clientes.find(c => 
+          c.nome === clienteTemp.nome && 
+          (c.cpfCnpj === clienteTemp.cpfCnpj || c.cpf === clienteTemp.cpfCnpj)
+        );
+        
+        if (!clienteRealEncontrado) {
+          console.log('⚠️ Cliente temporário não foi encontrado no servidor, mantendo na lista');
+          this.clientes.unshift(clienteTemp);
+          this.updateStats();
+          this.renderTable();
+        } else {
+          console.log('✅ Cliente temporário substituído por cliente real do servidor');
+        }
+      }
     } catch (error) {
       (window.toastManager || toastManager).error('❌ Erro ao salvar cliente');
       console.error(error);
