@@ -214,7 +214,15 @@ app.post("/api/clientes", async (req, res) => {
     }
     
     console.log('📥 Dados recebidos no POST /api/clientes:', req.body);
-    const novo = new Cliente(req.body);
+    
+    // Garantir que cpfCnpj seja salvo corretamente
+    const dadosCliente = { ...req.body };
+    if (dadosCliente.cpfCnpj && !dadosCliente.cpf) {
+      dadosCliente.cpf = dadosCliente.cpfCnpj; // Compatibilidade
+    }
+    
+    console.log('📝 Dados do cliente após processamento:', dadosCliente);
+    const novo = new Cliente(dadosCliente);
     console.log('📝 Cliente criado (antes de salvar):', novo);
     const clienteSalvo = await novo.save();
     console.log(`✅ Cliente salvo no banco: ${clienteSalvo.nome} (ID: ${clienteSalvo._id})`);

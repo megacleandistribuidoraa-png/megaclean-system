@@ -3,9 +3,11 @@ const mongoose = require('mongoose');
 const clienteSchema = new mongoose.Schema({
   nome: { type: String, required: true },
   cpf: { type: String, default: '' },
+  cpfCnpj: { type: String, default: '' }, // Compatibilidade com frontend
   telefone: { type: String, default: '' },
   email: { type: String, default: '' },
   endereco: { type: String, default: '' },
+  dataNascimento: { type: Date }, // Adicionar campo de data de nascimento
   status: { type: String, enum: ['ativo', 'inativo'], default: 'ativo' },
   // Fidelidade
   pontosFidelidade: { type: Number, default: 0 },
